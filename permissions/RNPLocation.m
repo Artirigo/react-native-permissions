@@ -17,14 +17,25 @@
 
 @implementation RNPLocation
 
+static NSString * const LOCATION_BOTH = @"both";
+static NSString * const LOCATION_ALWAYS = @"always";
+static NSString * const LOCATION_WHEN_IN_USE = @"whenInUse";
+
+// returned status is mapped as following:
+// notDetermined 		0
+// restricted 			1
+// denied 				2
+// authorizedAlways		3
+// authorizedWhenInUse	4
 + (NSString *)getStatusForType:(NSString *)type
 {
     int status = [CLLocationManager authorizationStatus];
+
     switch (status) {
         case kCLAuthorizationStatusAuthorizedAlways:
             return RNPStatusAuthorized;
         case kCLAuthorizationStatusAuthorizedWhenInUse:
-            return [type isEqualToString:@"always"] ? RNPStatusDenied : RNPStatusAuthorized;
+            return [type isEqualToString:LOCATION_ALWAYS] ? RNPStatusDenied : RNPStatusAuthorized;
         case kCLAuthorizationStatusDenied:
             return RNPStatusDenied;
         case kCLAuthorizationStatusRestricted:
@@ -39,15 +50,16 @@
     NSString *status = [RNPLocation getStatusForType:nil];
     if (status == RNPStatusUndetermined) {
         self.completionHandler = completionHandler;
-
+        
         if (self.locationManager == nil) {
             self.locationManager = [[CLLocationManager alloc] init];
             self.locationManager.delegate = self;
         }
 
-        if ([type isEqualToString:@"always"]) {
+        if ([type isEqualToString:LOCATION_ALWAYS] || [type isEqualToString:LOCATION_BOTH]) {
             [self.locationManager requestAlwaysAuthorization];
-        } else {
+        }
+        if ([type isEqualToString:LOCATION_WHEN_IN_USE] || [type isEqualToString:LOCATION_BOTH]) {
             [self.locationManager requestWhenInUseAuthorization];
         }
     } else {
