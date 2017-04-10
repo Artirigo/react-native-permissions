@@ -10,23 +10,32 @@ import {
   TouchableHighlight,
   Text,
   View,
+  ScrollView,
   Alert,
   AppState,
   Platform,
 } from 'react-native';
 
-import Permissions from 'react-native-permissions'
+import Permissions from 'react-native-permissions';
+
+const locationTypes = ['both', 'whenInUse', 'always'];
 
 export default class Example extends Component {
   state = {
     types: [],
+    locations: {
+      whenInUse: 'undetermined',
+      always: 'undetermined',
+      both: 'undetermined',
+    },
     status: {},
-  }
+  };
 
   componentDidMount() {
-    let types = Permissions.getPermissionTypes()
-    this.setState({ types })
-    this._updatePermissions(types)
+    let types = [...Permissions.getPermissionTypes()];
+    types.splice(types.indexOf('location'), 1);
+    this.setState({ types });
+    this._updatePermissions(types);
     AppState.addEventListener('change', this._handleAppStateChange.bind(this));
   }
 
@@ -37,7 +46,7 @@ export default class Example extends Component {
   //update permissions when app comes back from settings
   _handleAppStateChange(appState) {
     if (appState == 'active') {
-      this._updatePermissions(this.state.types)
+      this._updatePermissions(this.state.types);
     }
   }
 
@@ -47,85 +56,127 @@ export default class Example extends Component {
   }
 
   _updatePermissions(types) {
+    let status = {};
+    const locations = {
+      whenInUse: 'undetermined',
+      always: 'undetermined',
+      both: 'undetermined',
+    };
     Permissions.checkMultiplePermissions(types)
-      .then(status => {
-        if (this.state.isAlways) {
-          return Permissions.getPermissionStatus('location', 'always')
-            .then(location => ({...status, location}))
-        }
-        return status
+      .then(updatedStatus => {
+        status = updatedStatus;
       })
-      .then(status => this.setState({ status }))
+      .then(() =>
+        Permissions.getPermissionStatus('location', 'whenInUse')
+          .then(res => {
+            console.log('!! location whenInUse is', res);
+            locations['whenInUse'] = res;
+          })
+          .then(() =>
+            Permissions.getPermissionStatus('location', 'always').then(res => {
+              console.log('!! location always is', res);
+              locations['always'] = res;
+            }))
+          .then(() =>
+            Permissions.getPermissionStatus('location', 'both').then(res => {
+              console.log('!! location both is', res);
+            })))
+      .then(() => {
+        this.setState({ locations, status });
+      });
   }
 
-  _requestPermission(permission) {
-    var options
-
-    if (permission == 'location') {
-      options = this.state.isAlways ? 'always' : 'whenInUse'
-    }
+  _requestPermission(permission, options) {
+    console.log(`request >${permission}< with the following options`, options);
 
     Permissions.requestPermission(permission, options)
       .then(res => {
-        this.setState({
-          status: {...this.state.status, [permission]: res}
-        })
+        if (permission === 'location') {
+          this.setState({
+            locations: {
+              ...this.state.locations,
+              [options]: res,
+            },
+          });
+        } else {
+          this.setState({
+            status: { ...this.state.status, [permission]: res },
+          });
+        }
         if (res != 'authorized') {
           Alert.alert(
             'Whoops!',
-            "There was a problem getting your permission. Please enable it from settings.",
+            'There was a problem getting your permission. Please enable it from settings.',
             [
-              {text: 'Cancel', style: 'cancel'},
-              {text: 'Open Settings', onPress: this._openSettings.bind(this) },
-            ]
-          )
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: Permissions.openSettings },
+            ],
+          );
         }
-      }).catch(e => console.warn(e))
-  }
-
-  _onLocationSwitchChange() {
-    this.setState({ isAlways: !this.state.isAlways })
-    this._updatePermissions(this.state.types)
+      })
+      .catch(e => console.warn(e));
   }
 
   render() {
     return (
-      <View style={styles.container}>
+      <ScrollView>
+        <View style={styles.container}>
+          {Platform.OS === 'ios'
+            ? Object.keys(this.state.locations).map(l => (
+                <TouchableHighlight
+                  style={[styles.button, styles[this.state.locations[l]]]}
+                  key={l}
+                  onPress={this._requestPermission.bind(this, 'location', l)}
+                >
+                  <View>
+                    <Text style={styles.text}>
+                      {`location - ${l}`}
+                    </Text>
+                    <Text style={styles.subtext}>
+                      {this.state.locations[l]}
+                    </Text>
+                  </View>
+                </TouchableHighlight>
+              ))
+            : <TouchableHighlight
+                style={[styles.button, styles[this.state.status[p]]]}
+                key={p}
+                onPress={this._requestPermission.bind(this, p)}
+              >
+                <View>
+                  <Text style={styles.text}>location</Text>
+                  <Text style={styles.subtext}>
+                    {this.state.status[p]}
+                  </Text>
+                </View>
+              </TouchableHighlight>}
+          {this.state.types.map(p => (
+            <TouchableHighlight
+              style={[styles.button, styles[this.state.status[p]]]}
+              key={p}
+              onPress={this._requestPermission.bind(this, p)}
+            >
+              <View>
+                <Text style={styles.text}>
+                  {p}
+                </Text>
+                <Text style={styles.subtext}>
+                  {this.state.status[p]}
+                </Text>
+              </View>
+            </TouchableHighlight>
+          ))}
+          <View style={styles.footer}>
+            <TouchableHighlight onPress={Permissions.openSettings}>
+              <Text style={styles.text}>Open settings</Text>
+            </TouchableHighlight>
+          </View>
 
-        {this.state.types.map(p => (
-          <TouchableHighlight 
-            style={[styles.button, styles[this.state.status[p]]]}
-            key={p}
-            onPress={this._requestPermission.bind(this, p)}>
-            <View>
-              <Text style={styles.text}>
-                {Platform.OS == 'ios' && p == 'location' ? `location ${this.state.isAlways ? 'always' : 'whenInUse'}` : p}
-              </Text>
-              <Text style={styles.subtext}>
-                {this.state.status[p]}
-              </Text>
-            </View>
-          </TouchableHighlight>
-          )
-        )}
-        <View style={styles.footer}>
-          <TouchableHighlight 
-            style={styles['footer_'+Platform.OS]}
-            onPress={this._onLocationSwitchChange.bind(this)}>
-            <Text style={styles.text}>Toggle location type</Text>
-          </TouchableHighlight>
-
-          <TouchableHighlight 
-            onPress={this._openSettings.bind(this)}>
-            <Text style={styles.text}>Open settings</Text>
-          </TouchableHighlight>
+          <Text style={styles['footer_' + Platform.OS]}>
+            Note: microphone permissions may not work on iOS simulator. Also, toggling permissions from the settings menu may cause the app to crash. This is normal on iOS. Google "ios crash permission change"
+          </Text>
         </View>
-
-
-        <Text style={styles['footer_'+Platform.OS]}>
-          Note: microphone permissions may not work on iOS simulator. Also, toggling permissions from the settings menu may cause the app to crash. This is normal on iOS. Google "ios crash permission change"
-        </Text>
-      </View>
+      </ScrollView>
     );
   }
 }
@@ -163,7 +214,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef9a9a',
   },
   restricted: {
-    backgroundColor: '#FFAB91'
+    backgroundColor: '#FFAB91',
   },
   footer: {
     padding: 10,
@@ -173,5 +224,5 @@ const styles = StyleSheet.create({
   footer_android: {
     height: 0,
     width: 0,
-  }
-})
+  },
+});
