@@ -33,9 +33,15 @@ static NSString * const LOCATION_WHEN_IN_USE = @"whenInUse";
 
     switch (status) {
         case kCLAuthorizationStatusAuthorizedAlways:
+            if ([type isEqualToString:LOCATION_WHEN_IN_USE]) {
+                return RNPStatusDenied;
+            }
             return RNPStatusAuthorized;
         case kCLAuthorizationStatusAuthorizedWhenInUse:
-            return [type isEqualToString:LOCATION_ALWAYS] ? RNPStatusDenied : RNPStatusAuthorized;
+            if ([type isEqualToString:LOCATION_ALWAYS]) {
+                return RNPStatusDenied;
+            }
+            return RNPStatusAuthorized;
         case kCLAuthorizationStatusDenied:
             return RNPStatusDenied;
         case kCLAuthorizationStatusRestricted:
