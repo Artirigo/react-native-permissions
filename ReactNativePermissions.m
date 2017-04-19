@@ -9,24 +9,9 @@
 @import Contacts;
 
 #import "ReactNativePermissions.h"
-
-#if __has_include("RCTBridge.h")
-  #import "RCTBridge.h"
-#else
-  #import <React/RCTBridge.h>
-#endif
-
-#if __has_include("RCTConvert.h")
-  #import "RCTConvert.h"
-#else
-  #import <React/RCTConvert.h>
-#endif
-
-#if __has_include("RCTEventDispatcher.h")
-  #import "RCTEventDispatcher.h"
-#else
-  #import <React/RCTEventDispatcher.h>
-#endif
+#import <React/RCTBridge.h>
+#import <React/RCTConvert.h>
+#import <React/RCTEventDispatcher.h>
 
 #import "RNPLocation.h"
 #import "RNPBluetooth.h"

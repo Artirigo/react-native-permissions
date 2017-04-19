@@ -1,6 +1,6 @@
 {
   "name": "react-native-permissions",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/joshblour/react-native-permissions.git"
@@ -10,5 +10,5 @@
   "main": "ReactNativePermissions",
   "author": "Yonah Forst <yonaforst@hotmail.com>",
   "homepage": "https://github.com/joshblour/react-native-permissions",
-  "description": "Check user permissions in React Native"
+  "description": "Check user permissions in React Native -- updated fork for specific usage"
 }

@@ -1,6 +1,10 @@
 # React Native Permissions
 Request user permissions from React Native, iOS + Android
 
+*This fork updates the original library with the possibility to request `both` permissions for the location, so the user can seamlessly switch between the different permission levels. When requesting `both` you should still ask for both status type separately, as this callback is not updated.*
+
+*The original README can be found below.*
+
 The current supported permissions are:
 - Location
 - Camera
